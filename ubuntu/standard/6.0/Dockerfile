@@ -128,10 +128,6 @@ RUN set -ex \
 RUN curl https://pyenv.run | bash
 ENV PATH="/root/.pyenv/shims:/root/.pyenv/bin:$PATH"
 
-#php
-RUN curl -L https://raw.githubusercontent.com/phpenv/phpenv-installer/master/bin/phpenv-installer | bash
-ENV PATH="/root/.phpenv/shims:/root/.phpenv/bin:$PATH"
-
 #go
 RUN git clone https://github.com/syndbg/goenv.git $HOME/.goenv
 ENV PATH="/root/.goenv/shims:/root/.goenv/bin:/go/bin:$PATH"
@@ -214,17 +210,6 @@ RUN set -ex \
     && pip3 install --no-cache-dir --upgrade 'setuptools==62.6.0' wheel aws-sam-cli boto3 pipenv virtualenv
 
 #**************** END PYTHON *****************************************************
-
-#****************      PHP     ****************************************************
-ENV PHP_81_VERSION="8.1.6"
-
-COPY tools/runtime_configs/php/$PHP_81_VERSION /root/.phpenv/plugins/php-build/share/php-build/definitions/$PHP_81_VERSION
-RUN phpenv install $PHP_81_VERSION && rm -rf /tmp/* && phpenv global $PHP_81_VERSION
-RUN echo "memory_limit = 1G;" >> "/root/.phpenv/versions/$PHP_81_VERSION/etc/conf.d/memory.ini"
-
-# Install Composer globally
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
-#****************      END PHP     ****************************************************
 
 #****************     GOLANG     ****************************************************
 ENV GOLANG_18_VERSION="1.18.3"
@@ -370,7 +355,6 @@ FROM runtimes_n_corretto AS std_v6
 # Activate runtime versions specific to image version.
 RUN n $NODE_16_VERSION
 RUN pyenv  global $PYTHON_310_VERSION
-RUN phpenv global $PHP_81_VERSION
 RUN rbenv  global $RUBY_31_VERSION
 RUN goenv global  $GOLANG_18_VERSION
 
@@ -380,6 +364,8 @@ COPY runtimes.yml /codebuild/image/config/runtimes.yml
 COPY dockerd-entrypoint.sh /usr/local/bin/dockerd-entrypoint.sh
 COPY legal/bill_of_material.txt /usr/share/doc/bill_of_material.txt
 COPY amazon-ssm-agent.json /etc/amazon/ssm/amazon-ssm-agent.json
+COPY install_ubuntu_dependencies.sh /tmp
+RUN /tmp/install_ubuntu_dependencies.sh
 
 ENTRYPOINT ["/usr/local/bin/dockerd-entrypoint.sh"]
 
